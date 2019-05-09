@@ -1,6 +1,6 @@
 ## FreeBSD DAEMON Keeper
 
-A simple POSIX shell script to keep crashing FreeBSD services running
+A simple POSIX shell script to keep crashing services running FreeBSD
 
 ### LICENSE
 
