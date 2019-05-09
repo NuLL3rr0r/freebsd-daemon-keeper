@@ -47,7 +47,11 @@ readonly LOG_FATAL="FATAL"
 
 readonly SCRIPT="$0"
 readonly SCRIPT_NAME="$(${BASENAME} -- "${SCRIPT}")"
-readonly SYSLOG_TAG="$(${BASENAME} -- "${SCRIPT}" | ${TR} '[:lower:]' '[:upper:]' | ${REV} | ${CUT} -d "." -f2- | ${REV})"
+readonly SYSLOG_TAG="$(${BASENAME} -- "${SCRIPT}" \
+    | ${TR} '[:lower:]' '[:upper:]' \
+    | ${REV} \
+    | ${CUT} -d "." -f2- \
+    | ${REV})"
 
 usage()
 {
@@ -143,7 +147,8 @@ do
             readonly DAEMON="${OPTARG}"
             ;;
         s)
-            if [ ! -f "/usr/etc/rc.d/${OPTARG}" -a ! -f "/usr/local/etc/rc.d/${OPTARG}" ] ;
+            if [ ! -f "/usr/etc/rc.d/${OPTARG}" \
+                -a ! -f "/usr/local/etc/rc.d/${OPTARG}" ] ;
             then
                 fatal "No such a service exists: '${OPTARG}'!"
             fi
@@ -163,7 +168,10 @@ then
     usage
 fi
 
-readonly DAEMON_PROCESS_COUNT=$(${PS} aux | ${GREP} -v "${GREP}" | ${GREP} -v "${SCRIPT}" | ${GREP} -c "${DAEMON}")
+readonly DAEMON_PROCESS_COUNT=$(${PS} aux \
+    | ${GREP} -v "${GREP}" \
+    | ${GREP} -v "${SCRIPT}" \
+    | ${GREP} -c "${DAEMON}")
 
 if [ "${DAEMON_PROCESS_COUNT}" -lt 1 ] ;
 then
