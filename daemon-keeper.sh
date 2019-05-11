@@ -32,6 +32,7 @@ readonly GREP="/usr/bin/grep"
 readonly LOGGER="/usr/bin/logger"
 readonly PS="/bin/ps"
 readonly REV="/usr/bin/rev"
+readonly SERVICE="/usr/sbin/service"
 readonly TR="/usr/bin/tr"
 
 readonly FMT_OFF='\e[0m'
@@ -102,7 +103,7 @@ restart_service()
     service_name="$1"
 
     info "Stopping the service '${service_name}'..."
-    service ${service_name} stop > /dev/null 2>&1
+    ${SERVICE} ${service_name} stop > /dev/null 2>&1
 
     if [ "$?" -eq 0 ] ;
     then
@@ -112,7 +113,7 @@ restart_service()
     fi
 
     info "Starting the service '${service_name}'..."
-    service ${service_name} start > /dev/null 2>&1
+    ${SERVICE} ${service_name} start > /dev/null 2>&1
 
     if [ "$?" -eq 0 ] ;
     then
