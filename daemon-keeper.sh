@@ -30,7 +30,6 @@ readonly CUT="/usr/bin/cut"
 readonly ECHO="echo -e"
 readonly GREP="/usr/bin/grep"
 readonly LOGGER="/usr/bin/logger"
-readonly PS="/bin/ps"
 readonly REV="/usr/bin/rev"
 readonly SERVICE="/usr/sbin/service"
 readonly TR="/usr/bin/tr"
@@ -59,7 +58,7 @@ usage()
     ${ECHO}
     ${ECHO} "${FMT_INFO}Correct usage:${FMT_OFF}"
     ${ECHO}
-    ${ECHO} "    ${FMT_INFO}${SCRIPT_NAME} -e {executable full path} -s {service name to (re)start} [-s {another service name to (re)start}] [... even more -s and service names to (re)start]${FMT_OFF}"
+    ${ECHO} "    ${FMT_INFO}${SCRIPT_NAME} -d {daemon} -e {extra daemon to (re)start} [-e {another extra daemon to (re)start}] [... even more -e and extra daemons to (re)start]${FMT_OFF}"
     ${ECHO}
 
     exit 1
@@ -98,29 +97,42 @@ fatal()
     exit 1
 }
 
-restart_service()
+start_daemon()
 {
-    service_name="$1"
+    daemon_name="$1"
 
-    info "Stopping the service '${service_name}'..."
-    ${SERVICE} ${service_name} stop > /dev/null 2>&1
-
-    if [ "$?" -eq 0 ] ;
-    then
-        info "The '${service_name}' service has been stopped successfully!"
-    else
-        err "Failed to stop the '${service_name}' service!"
-    fi
-
-    info "Starting the service '${service_name}'..."
-    ${SERVICE} ${service_name} start > /dev/null 2>&1
+    info "Starting the daemon '${daemon_name}'..."
+    ${SERVICE} ${daemon_name} start > /dev/null 2>&1
 
     if [ "$?" -eq 0 ] ;
     then
-        info "The '${service_name}' service has been started successfully!"
+        info "The '${daemon_name}' daemon has been started successfully!"
     else
-        err "Failed to start the '${service_name}' service!"
+        err "Failed to start the '${daemon_name}' daemon!"
     fi
+}
+
+stop_daemon()
+{
+    daemon_name="$1"
+
+    info "Stopping the daemon '${daemon_name}'..."
+    ${SERVICE} ${daemon_name} stop > /dev/null 2>&1
+
+    if [ "$?" -eq 0 ] ;
+    then
+        info "The '${daemon_name}' daemon has been stopped successfully!"
+    else
+        err "Failed to stop the '${daemon_name}' daemon!"
+    fi
+}
+
+restart_daemon()
+{
+    daemon_name="$1"
+
+    stop_daemon "${daemon_name}"
+    start_daemon "${daemon_name}"
 }
 
 if [ "$#" -eq 0 ] ;
@@ -128,33 +140,25 @@ then
     usage
 fi
 
-SERVICE_COUNT=0
-
-while getopts ":e: :s:" ARG ;
+while getopts ":d: :e:" ARG ;
 do
     case ${ARG} in
-        e)
-            if [ -z "${OPTARG}" ] ;
+        d)
+            if [ ! -f "/usr/etc/rc.d/${OPTARG}" \
+                -a ! -f "/usr/local/etc/rc.d/${OPTARG}" ] ;
             then
-                err "Missing executable ${OPTARG}!"
+                fatal "No such a daemon exists: '${OPTARG}'!"
                 usage
-            fi
-
-            if [ ! -f "${OPTARG}" ] ;
-            then
-                fatal "The executable '${OPTARG}' does not exist!"
             fi
 
             readonly DAEMON="${OPTARG}"
             ;;
-        s)
+        e)
             if [ ! -f "/usr/etc/rc.d/${OPTARG}" \
                 -a ! -f "/usr/local/etc/rc.d/${OPTARG}" ] ;
             then
-                fatal "No such a service exists: '${OPTARG}'!"
+                fatal "No such a daemon exists: '${OPTARG}'!"
             fi
-
-            SERVICE_COUNT=$((SERVICE_COUNT+1))
             ;;
         \?)
             err "Invalid option: -${OPTARG}!"
@@ -163,27 +167,20 @@ do
     esac
 done
 
-if [ "${SERVICE_COUNT}" -eq 0 ] ;
-then
-    err "At least one service name is required!"
-    usage
-fi
+${SERVICE} ${DAEMON} status > /dev/null 2>&1
+readonly DAEMON_STATUS=$?
 
-readonly DAEMON_PROCESS_COUNT=$(${PS} aux \
-    | ${GREP} -v "${GREP}" \
-    | ${GREP} -v "${SCRIPT}" \
-    | ${GREP} -c "${DAEMON}")
-
-if [ "${DAEMON_PROCESS_COUNT}" -lt 1 ] ;
+if [ "${DAEMON_STATUS}" -ne 0 ] ;
 then
     warn "'${DAEMON}' is not running!"
+    start_daemon "${DAEMON}"
 
     OPTIND=1
-    while getopts ":e: :s:" ARG ;
+    while getopts ":d: :e:" ARG ;
     do
         case ${ARG} in
-            s)
-                restart_service "${OPTARG}"
+            e)
+                restart_daemon "${OPTARG}"
                 ;;
             \?)
             ;;
